@@ -45,9 +45,9 @@ module.exports = {
         rinkeby: {
             url: process.env.RINKEBY_URL || "",
             accounts:
-                process.env.PRIVATE_KEY !== undefined
+                process.env.TEST_PRIVATE_KEY !== undefined
                     ? [
-                        process.env.PRIVATE_KEY
+                        process.env.TEST_PRIVATE_KEY
                     ]
                     : []
         },
@@ -57,6 +57,15 @@ module.exports = {
                 process.env.LIVE_PRIVATE_KEY !== undefined
                     ? [
                         process.env.LIVE_PRIVATE_KEY
+                    ]
+                    : []
+        },
+        mumbai: {
+            url: process.env.MATIC_TESTNET_URL || "",
+            accounts:
+                process.env.TEST_PRIVATE_KEY !== undefined
+                    ? [
+                        process.env.TEST_PRIVATE_KEY
                     ]
                     : []
         },
