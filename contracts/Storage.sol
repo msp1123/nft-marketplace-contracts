@@ -24,6 +24,7 @@ contract TokenStorage is AccessControl {
         uint256 price;
         address owner;
         bool tradable;
+        uint256 standard;
         uint256 timestamp;
     }
     
@@ -62,7 +63,6 @@ contract TokenStorage is AccessControl {
         uint256 _amount,
         address _creator,
         uint256 _royalty,
-        uint256 _standard,
         uint256 _timestamp
     ) external onlyRole(STORAGE_ADMIN_ROLE) {
         mintedTokens[_nftAddress][_tokenId].nftAddress = _nftAddress;
@@ -70,7 +70,6 @@ contract TokenStorage is AccessControl {
         mintedTokens[_nftAddress][_tokenId].amount = _amount;
         mintedTokens[_nftAddress][_tokenId].creator = _creator;
         mintedTokens[_nftAddress][_tokenId].royalty = _royalty;
-        mintedTokens[_nftAddress][_tokenId].standard = _standard;
         mintedTokens[_nftAddress][_tokenId].timestamp = _timestamp;
     }
 
@@ -81,6 +80,7 @@ contract TokenStorage is AccessControl {
         uint256 _amount,
         uint256 _price,
         address _owner,
+        uint256 _standard,
         uint256 _timestamp
     ) external onlyRole(STORAGE_ADMIN_ROLE) {
         tokenlistings[_nftAddress][_tokenId][_itemId].nftAddress = _nftAddress;
@@ -89,6 +89,7 @@ contract TokenStorage is AccessControl {
         tokenlistings[_nftAddress][_tokenId][_itemId].price = _price;
         tokenlistings[_nftAddress][_tokenId][_itemId].owner = _owner;
         tokenlistings[_nftAddress][_tokenId][_itemId].tradable = true;
+        tokenlistings[_nftAddress][_tokenId][_itemId].standard = _standard;
         tokenlistings[_nftAddress][_tokenId][_itemId].timestamp = _timestamp;
 
         tokenListingCount[_nftAddress][_tokenId]++;

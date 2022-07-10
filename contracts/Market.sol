@@ -17,12 +17,10 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
 
     uint256 public maxRoyalty;
 
-    address public nftContractAddress721;
-    address public nftContractAddress1155;
+    address public nftContractAddress;
     address public storageContractAddress;
 
     event TokenMinted(
-        uint256 standard,
         address nftAddress,
         uint256 tokenId,
         uint256 amount,
@@ -52,35 +50,24 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         uint256 itemId,
         uint256 price
     );
-    event TokenBurned(
-        uint256 standard,
-        address nftAddress,
-        uint256 tokenId,
-        uint256 itemId,
-        uint256 amount,
-        address owner
-    );
 
     TokenStorage private tokenStorage;
 
     constructor(
         uint256 _maxRoyalty,
-        address _nftContractAddress721,
-        address _nftContractAddress1155,
+        address _nftContractAddress,
         address _storageContractAddress
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MARKET_ADMIN_ROLE, _msgSender());
 
         maxRoyalty = _maxRoyalty;
-        nftContractAddress721 = _nftContractAddress721;
-        nftContractAddress1155 = _nftContractAddress1155;
+        nftContractAddress = _nftContractAddress;
         storageContractAddress = _storageContractAddress;
         tokenStorage = TokenStorage(storageContractAddress);
     }
 
     function mintToken(
-        uint256 _standard,
         uint256 _tokenId,
         uint256 _royalty,
         uint256 _amount
@@ -88,39 +75,19 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(_amount > 0, "Amount should be more than zero");
         require(_royalty <= maxRoyalty, "Royalty limit exceeded");
 
-        address _nftAddress;
-        if (_standard == 721) {
-            _nftAddress = nftContractAddress721;
-            require(
-                tokenStorage.isTokenMinted(_nftAddress, _tokenId) == false,
-                "Token ID already minted"
-            );
-            require(_amount == 1, "Invalid mint amount");
-            NftContract721(_nftAddress).mint(_msgSender(), _tokenId);
-        } else if (_standard == 1155) {
-            _nftAddress = nftContractAddress1155;
-            require(
-                tokenStorage.isTokenMinted(_nftAddress, _tokenId) == false,
-                "Token ID already minted"
-            );
-            NftContract1155(_nftAddress).mint(_msgSender(), _tokenId, _amount, "0x");
-        } else {
-            revert("Invalid nft address");
-        }
+        NftContract1155(nftContractAddress).mint(_msgSender(), _tokenId, _amount, "0x");
 
         tokenStorage.mintToken(
-            _nftAddress,
+            nftContractAddress,
             _tokenId,
             _amount,
             _msgSender(),
             _royalty,
-            _standard,
             block.timestamp
         );
 
         emit TokenMinted(
-            _standard,
-            _nftAddress,
+            nftContractAddress,
             _tokenId,
             _amount,
             _msgSender()
@@ -180,6 +147,7 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             _amount,
             _price,
             _msgSender(),
+            _standard,
             block.timestamp
         );
 

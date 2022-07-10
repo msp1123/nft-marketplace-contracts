@@ -11,7 +11,7 @@ const {utils} = ethers;
 // `describe` receives the name of a section of your test suite, and a callback.
 // The callback must define the tests of that section. This callback can't be
 // an async function.
-describe("Market contract 721", function () {
+describe("Market contract", function () {
     // Mocha has four functions that let you hook into the the test runner's
     // lifecyle. These are: `before`, `beforeEach`, `after`, `afterEach`.
 
@@ -185,7 +185,7 @@ describe("Market contract 721", function () {
         it("Should able to mint token in 721", async function () {
 
             let transaction = await marketContract.connect(provider1)
-                .mintToken(721, tokenId, royalty, amount721);
+                .mintToken(tokenId, royalty, amount721);
             await transaction.wait();
 
             expect(await storageContract.isTokenMinted(nftContract721.address, tokenId)).to.equal(true);
@@ -197,7 +197,7 @@ describe("Market contract 721", function () {
         it("Should able to mint token in 1155", async function () {
 
             let transaction = await marketContract.connect(provider1)
-                .mintToken(1155, tokenId, royalty, amount1155);
+                .mintToken(tokenId, royalty, amount1155);
             await transaction.wait();
 
             expect(await storageContract.isTokenMinted(nftContract1155.address, tokenId)).to.equal(true);
