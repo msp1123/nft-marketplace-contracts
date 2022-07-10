@@ -185,7 +185,7 @@ describe("Market contract 721", function () {
         it("Should able to mint token in 721", async function () {
 
             let transaction = await marketContract.connect(provider1)
-                .mintToken(nftContract721.address, tokenId, royalty, amount721);
+                .mintToken(721, tokenId, royalty, amount721);
             await transaction.wait();
 
             expect(await storageContract.isTokenMinted(nftContract721.address, tokenId)).to.equal(true);
@@ -197,7 +197,7 @@ describe("Market contract 721", function () {
         it("Should able to mint token in 1155", async function () {
 
             let transaction = await marketContract.connect(provider1)
-                .mintToken(nftContract1155.address, tokenId, royalty, amount1155);
+                .mintToken(1155, tokenId, royalty, amount1155);
             await transaction.wait();
 
             expect(await storageContract.isTokenMinted(nftContract1155.address, tokenId)).to.equal(true);

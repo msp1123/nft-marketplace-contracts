@@ -61,8 +61,6 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         address owner
     );
 
-    NftContract721 private nft721;
-    NftContract1155 private nft1155;
     TokenStorage private tokenStorage;
 
     constructor(
@@ -78,34 +76,34 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         nftContractAddress721 = _nftContractAddress721;
         nftContractAddress1155 = _nftContractAddress1155;
         storageContractAddress = _storageContractAddress;
-
-        nft721 = NftContract721(nftContractAddress721);
-        nft1155 = NftContract1155(nftContractAddress1155);
         tokenStorage = TokenStorage(storageContractAddress);
-        console.log("Own address: '%s'", address(this));
     }
 
     function mintToken(
-        address _nftAddress,
+        uint256 _standard,
         uint256 _tokenId,
         uint256 _royalty,
         uint256 _amount
     ) public {
         require(_amount > 0, "Amount should be more than zero");
         require(_royalty <= maxRoyalty, "Royalty limit exceeded");
-        require(
-            tokenStorage.isTokenMinted(_nftAddress, _tokenId) == false,
-            "Token ID already minted"
-        );
 
-        uint256 _standard;
-        if (_supportERC721(_nftAddress)) {
+        address _nftAddress;
+        if (_standard == 721) {
+            _nftAddress = nftContractAddress721;
+            require(
+                tokenStorage.isTokenMinted(_nftAddress, _tokenId) == false,
+                "Token ID already minted"
+            );
             require(_amount == 1, "Invalid mint amount");
-            nft721.mint(_msgSender(), _tokenId);
-            _standard = 721;
-        } else if (_supportERC1155(_nftAddress)) {
-            nft1155.mint(_msgSender(), _tokenId, _amount, "0x");
-            _standard = 1155;
+            NftContract721(_nftAddress).mint(_msgSender(), _tokenId);
+        } else if (_standard == 1155) {
+            _nftAddress = nftContractAddress1155;
+            require(
+                tokenStorage.isTokenMinted(_nftAddress, _tokenId) == false,
+                "Token ID already minted"
+            );
+            NftContract1155(_nftAddress).mint(_msgSender(), _tokenId, _amount, "0x");
         } else {
             revert("Invalid nft address");
         }
@@ -145,13 +143,13 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         uint256 _standard;
         uint256 _itemId;
         if (_supportERC721(_nftAddress)) {
-            address owner = nft721.ownerOf(_tokenId);
+            address owner = NftContract721(_nftAddress).ownerOf(_tokenId);
             require(owner == _msgSender(), "Caller is not owner");
             if (_amount > 1) {
                 _amount = 1;
             }
 
-            bool isApproved = nft721.isApprovedForAll(
+            bool isApproved = NftContract721(_nftAddress).isApprovedForAll(
                 _msgSender(),
                 address(this)
             );
@@ -159,10 +157,10 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             _standard = 721;
             _itemId = 1;
         } else if (_supportERC1155(_nftAddress)) {
-            uint256 balance = nft1155.balanceOf(_msgSender(), _tokenId);
+            uint256 balance = NftContract1155(_nftAddress).balanceOf(_msgSender(), _tokenId);
             require(balance >= _amount, "Must own enough token");
 
-            bool isApproved = nft1155.isApprovedForAll(
+            bool isApproved = NftContract1155(_nftAddress).isApprovedForAll(
                 _msgSender(),
                 address(this)
             );
@@ -202,11 +200,6 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         uint256 _amount
     ) public payable {
         require(_amount > 0, "Amount should be more than zero");
-        require(msg.value > 0, "Eth not sent");
-        require(
-            tokenStorage.isTokenMinted(_nftAddress, _tokenId),
-            "Token not found in Market"
-        );
         require(
             _itemId <= tokenStorage.getTokenListingCount(_nftAddress, _tokenId),
             "Item not found in market"
@@ -230,9 +223,9 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(amount >= _amount, "Cannot buy more than available");
 
         if (_supportERC721(_nftAddress)) {
-            nft721.safeTransferFrom(owner, _msgSender(), _tokenId);
+            NftContract721(_nftAddress).safeTransferFrom(owner, _msgSender(), _tokenId);
         } else if (_supportERC1155(_nftAddress)) {
-            nft1155.safeTransferFrom(
+            NftContract1155(_nftAddress).safeTransferFrom(
                 owner,
                 _msgSender(),
                 _tokenId,
