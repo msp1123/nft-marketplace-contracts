@@ -28,15 +28,13 @@ async function main () {
     // await proxyRegistry.deployed();
     // let proxyRegistryAddress = proxyRegistry.address;
     
-    let NftContract721;
-    let NftContract1155;
-    let StorageContract
-    let MarketContract;
-
-    let nftContract721;
-    let nftContract1155;
-    let storageContract;
-    let marketContract;
+    let TokenAsset;
+    let TokenMarket;
+    let TokenStorage;
+    
+    let tokenAsset;
+    let tokenMarket;
+    let tokenStorage;
     
     let MINTER_ROLE = utils.keccak256(
         utils.toUtf8Bytes("MINTER_ROLE")
@@ -45,9 +43,12 @@ async function main () {
         utils.toUtf8Bytes("STORAGE_ADMIN_ROLE")
     );
     
+    let chainId = 4;
     let maxRoyalty = 10;
     let platformFee = 5;
-    let feeAddress = "0x1652149105D6d5F41844B1104499d0C2E4930ee7";
+    let symbol = "NFTMARKET";
+    let name = "NFT Market Tokens";
+    let platformAddress = "0x1652149105D6d5F41844B1104499d0C2E4930ee7";
     
     // rinkeby
     let proxyRegistryAddress = "0x1E525EEAF261cA41b809884CBDE9DD9E1619573A";
@@ -60,46 +61,39 @@ async function main () {
     console.log("Owner Address:", owner.address);
     console.log('Owner Balance:', ownerBalance.toString());
     
-    NftContract721 = await ethers.getContractFactory("NftContract721");
-    NftContract1155 = await ethers.getContractFactory("NftContract1155");
-    StorageContract = await ethers.getContractFactory("TokenStorage");
-    MarketContract = await ethers.getContractFactory("TokenMarket");
+    TokenAsset = await ethers.getContractFactory("TokenAsset");
+    TokenMarket = await ethers.getContractFactory("TokenMarket");
+    TokenStorage = await ethers.getContractFactory("TokenStorage");
     
-    nftContract721 = await NftContract721.deploy(
-        proxyRegistryAddress
+    tokenAsset = await TokenAsset.deploy(
+        name,
+        symbol,
+        chainId
     );
-    await nftContract721.deployed();
-    console.log(`Nft Contract 721 address: ${nftContract721.address}`);
+    await tokenAsset.deployed();
+    console.log(`Token Contract deployed at: ${tokenAsset.address}`);
     
-    nftContract1155 = await NftContract1155.deploy(
-        proxyRegistryAddress
-    );
-    await nftContract1155.deployed();
-    console.log(`Nft Contract 1155 address: ${nftContract1155.address}`);
-    
-    storageContract = await StorageContract.deploy(
+    tokenStorage = await TokenStorage.deploy(
         platformFee,
-        feeAddress
+        platformAddress
     );
-    await storageContract.deployed();
-    console.log(`Storage Contract address: ${storageContract.address}`);
+    await tokenStorage.deployed();
+    console.log(`Storage Contract deployed at: ${tokenStorage.address}`);
     
-    marketContract = await MarketContract.deploy(
+    tokenMarket = await TokenMarket.deploy(
         maxRoyalty,
-        nftContract721.address,
-        nftContract1155.address,
-        storageContract.address
+        tokenAsset.address,
+        tokenStorage.address
     );
-    await marketContract.deployed();
-    console.log(`Market Contract address: ${marketContract.address}`);
+    await tokenMarket.deployed();
+    console.log(`Market Contract deployed at: ${tokenMarket.address}`);
 
-    await nftContract721.grantRole(MINTER_ROLE, marketContract.address);
-    console.log("Minter Role granted by 721 contract");
+    let grantMinterRole = await tokenAsset.grantRole(MINTER_ROLE, tokenMarket.address);
+    await grantMinterRole.wait();
+    console.log("Minter Role granted by Asset contract");
     
-    await nftContract1155.grantRole(MINTER_ROLE, marketContract.address);
-    console.log("Minter Role granted by 1155 contract");
-    
-    await storageContract.grantRole(STORAGE_ADMIN_ROLE, marketContract.address);
+    let grantStorageRole = await tokenStorage.grantRole(STORAGE_ADMIN_ROLE, tokenMarket.address);
+    await grantStorageRole.wait()
     console.log("Storage Admin Role granted by storage contract");
 }
 

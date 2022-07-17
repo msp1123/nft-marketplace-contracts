@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.9;
 
-import "./Nft721.sol";
-import "./Nft1155.sol";
+import "./TokenAsset721.sol";
+import "./TokenAsset.sol";
 import "./Storage.sol";
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -75,7 +75,7 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(_amount > 0, "Amount should be more than zero");
         require(_royalty <= maxRoyalty, "Royalty limit exceeded");
 
-        NftContract1155(nftContractAddress).mint(_msgSender(), _tokenId, _amount, "0x");
+        TokenAsset(nftContractAddress).mint(_msgSender(), _tokenId, _amount, "0x");
 
         tokenStorage.mintToken(
             nftContractAddress,
@@ -110,13 +110,13 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         uint256 _standard;
         uint256 _itemId;
         if (_supportERC721(_nftAddress)) {
-            address owner = NftContract721(_nftAddress).ownerOf(_tokenId);
+            address owner = TokenAsset721(_nftAddress).ownerOf(_tokenId);
             require(owner == _msgSender(), "Caller is not owner");
             if (_amount > 1) {
                 _amount = 1;
             }
 
-            bool isApproved = NftContract721(_nftAddress).isApprovedForAll(
+            bool isApproved = TokenAsset721(_nftAddress).isApprovedForAll(
                 _msgSender(),
                 address(this)
             );
@@ -124,10 +124,10 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             _standard = 721;
             _itemId = 1;
         } else if (_supportERC1155(_nftAddress)) {
-            uint256 balance = NftContract1155(_nftAddress).balanceOf(_msgSender(), _tokenId);
+            uint256 balance = TokenAsset(_nftAddress).balanceOf(_msgSender(), _tokenId);
             require(balance >= _amount, "Must own enough token");
 
-            bool isApproved = NftContract1155(_nftAddress).isApprovedForAll(
+            bool isApproved = TokenAsset(_nftAddress).isApprovedForAll(
                 _msgSender(),
                 address(this)
             );
@@ -191,9 +191,9 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(amount >= _amount, "Cannot buy more than available");
 
         if (_supportERC721(_nftAddress)) {
-            NftContract721(_nftAddress).safeTransferFrom(owner, _msgSender(), _tokenId);
+            TokenAsset721(_nftAddress).safeTransferFrom(owner, _msgSender(), _tokenId);
         } else if (_supportERC1155(_nftAddress)) {
-            NftContract1155(_nftAddress).safeTransferFrom(
+            TokenAsset(_nftAddress).safeTransferFrom(
                 owner,
                 _msgSender(),
                 _tokenId,

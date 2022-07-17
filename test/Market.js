@@ -21,54 +21,49 @@ describe("Market contract", function () {
     // A common pattern is to declare some variables, and assign them in the
     // `before` and `beforeEach` callbacks.
 
-    let ProxyRegistry;
-    let NftContract721;
-    let NftContract1155;
-    let StorageContract
-    let MarketContract;
+    let TokenAsset;
+    let TokenMarket;
+    let TokenStorage;
 
-    let proxyRegistry;
-    let nftContract721;
-    let nftContract1155;
-    let storageContract;
-    let marketContract;
+    let tokenAsset;
+    let tokenMarket;
+    let tokenStorage;
 
+    let user1
+    let user2
     let owner;
-    let user1;
-    let user2;
 
-    let provider1;
-    let provider2;
+    let provider1
+    let provider2
 
     let MINTER_ROLE = utils.keccak256(
         utils.toUtf8Bytes("MINTER_ROLE")
-    );
-    let MARKET_ADMIN_ROLE = utils.keccak256(
-        utils.toUtf8Bytes("MARKET_ADMIN_ROLE")
     );
     let STORAGE_ADMIN_ROLE = utils.keccak256(
         utils.toUtf8Bytes("STORAGE_ADMIN_ROLE")
     );
 
+    let chainId = 4;
     let maxRoyalty = 10;
     let platformFee = 5;
-    let feeAddress = "0x1652149105D6d5F41844B1104499d0C2E4930ee7";
+    let symbol = "NFTMARKET";
+    let name = "NFT Market Tokens";
+    let platformAddress = "0x1652149105D6d5F41844B1104499d0C2E4930ee7";
+
+    // rinkeby
+    let proxyRegistryAddress = "0x1E525EEAF261cA41b809884CBDE9DD9E1619573A";
+    // mainnet
+    // let proxyRegistryAddress = "0xa5409ec958c83c3f309868babaca7c86dcb077c1";
 
     // `beforeEach` will run before each test, re-deploying the contract every time.
     // It receives a callback, which can be async.
     before(async function () {
-
-        let snapshot = await ethers.provider.send('evm_snapshot');
-
-        // Get the ContractFactory and Signers here.
-        ProxyRegistry = await ethers.getContractFactory("ProxyRegistry");
-        NftContract721 = await ethers.getContractFactory("NftContract721");
-        NftContract1155 = await ethers.getContractFactory("NftContract1155");
-        StorageContract = await ethers.getContractFactory("TokenStorage");
-        MarketContract = await ethers.getContractFactory("TokenMarket");
+        
         [owner] = await ethers.getSigners();
         let ownerBalance = await ethers.provider.getBalance(owner.address)
-
+        console.log("Owner Address:", owner.address);
+        console.log('Owner Balance:', ownerBalance.toString());
+        
         user1 = ethers.Wallet.createRandom();
         user2 = ethers.Wallet.createRandom();
 
@@ -79,91 +74,70 @@ describe("Market contract", function () {
         await owner.sendTransaction({to: user1.address, value: transferAmount});
         await owner.sendTransaction({to: user2.address, value: transferAmount});
 
-        console.log("Owner Address:", owner.address);
-        console.log('Owner Balance:', ownerBalance.toString());
+        TokenAsset = await ethers.getContractFactory("TokenAsset");
+        TokenMarket = await ethers.getContractFactory("TokenMarket");
+        TokenStorage = await ethers.getContractFactory("TokenStorage");
 
-        console.log(`User 1: ${user1.address}`);
-        console.log(`User 2: ${user2.address}`);
+        tokenAsset = await TokenAsset.deploy(
+            name,
+            symbol,
+            chainId
+        );
+        await tokenAsset.deployed();
+        console.log(`Token Contract deployed at: ${tokenAsset.address}`);
 
-        // To deploy our contract, we just have to call Token.deploy() and await
-        // for it to be deployed(), which happens once its transaction has been mined.
-        proxyRegistry = await ProxyRegistry.deploy();
-        nftContract721 = await NftContract721.deploy(
-            proxyRegistry.address
-        );
-        nftContract1155 = await NftContract1155.deploy(
-            proxyRegistry.address
-        );
-        storageContract = await StorageContract.deploy(
+        tokenStorage = await TokenStorage.deploy(
             platformFee,
-            feeAddress
+            platformAddress
         );
+        await tokenStorage.deployed();
+        console.log(`Storage Contract deployed at: ${tokenStorage.address}`);
 
-        marketContract = await MarketContract.deploy(
+        tokenMarket = await TokenMarket.deploy(
             maxRoyalty,
-            nftContract721.address,
-            nftContract1155.address,
-            storageContract.address
+            tokenAsset.address,
+            tokenStorage.address
         );
-
-        console.log(`Proxy Registery address: ${proxyRegistry.address}`);
-        console.log(`Nft Contract 721 address: ${nftContract721.address}`);
-        console.log(`Nft Contract 1155 address: ${nftContract1155.address}`);
-        console.log(`Storage Contract address: ${storageContract.address}`);
-        console.log(`Market Contract address: ${marketContract.address}`);
+        await tokenMarket.deployed();
     });
 
     // You can nest describe calls to create subsections.
     describe("Deployment", function () {
-        describe("Nft Contract 721", function () {
-            it("Should check minter role", async function () {
-                expect(await nftContract721.hasRole(MINTER_ROLE, marketContract.address)).to.equal(false);
+        describe("Asset Contract pre approvals", function () {
+            it("Should check minter role in asset contract", async function () {
+                expect(await tokenAsset.hasRole(MINTER_ROLE, tokenMarket.address)).to.equal(false);
             });
 
-            it("Should able to grant minter role", async function () {
-                expect(await nftContract721.grantRole(MINTER_ROLE, marketContract.address));
-                expect(await nftContract721.hasRole(MINTER_ROLE, marketContract.address)).to.equal(true);
-            });
-        });
-
-        describe("Nft Contract 1155", function () {
-            it("Should check minter role", async function () {
-                expect(await nftContract1155.hasRole(MINTER_ROLE, marketContract.address)).to.equal(false);
-            });
-
-            it("Should able to grant minter role", async function () {
-                expect(await nftContract1155.grantRole(MINTER_ROLE, marketContract.address));
-                expect(await nftContract1155.hasRole(MINTER_ROLE, marketContract.address)).to.equal(true);
+            it("Should able to grant minter role in asset contract", async function () {
+                expect(await tokenAsset.grantRole(MINTER_ROLE, tokenMarket.address));
+                expect(await tokenAsset.hasRole(MINTER_ROLE, tokenMarket.address)).to.equal(true);
             });
         });
 
         describe("Storage Contract", function () {
             it("Should check storage admin role", async function () {
-                expect(await storageContract.hasRole(STORAGE_ADMIN_ROLE, marketContract.address)).to.equal(false);
+                expect(await tokenStorage.hasRole(STORAGE_ADMIN_ROLE, tokenMarket.address)).to.equal(false);
             });
 
             it("Should able to grant storage admin role", async function () {
-                expect(await storageContract.grantRole(STORAGE_ADMIN_ROLE, marketContract.address));
-                expect(await storageContract.hasRole(STORAGE_ADMIN_ROLE, marketContract.address)).to.equal(true);
+                expect(await tokenStorage.grantRole(STORAGE_ADMIN_ROLE, tokenMarket.address));
+                expect(await tokenStorage.hasRole(STORAGE_ADMIN_ROLE, tokenMarket.address)).to.equal(true);
             });
         });
 
         describe("MarketContract", function () {
-            it("Should check minter role", async function () {
-                expect(await marketContract.owner()).to.equal(owner.address);
+            it("Should check minter role in market", async function () {
+                expect(await tokenMarket.owner()).to.equal(owner.address);
             });
             it("Should check max royalty is set properly", async function () {
-                expect(await marketContract.maxRoyalty()).to.equal(maxRoyalty);
+                expect(await tokenMarket.maxRoyalty()).to.equal(maxRoyalty);
             });
 
-            it("Should check 721 nft contract address is set properly", async function () {
-                expect(await marketContract.nftContractAddress721()).to.equal(nftContract721.address);
-            });
-            it("Should check 1155 nft contract address is set properly", async function () {
-                expect(await marketContract.nftContractAddress1155()).to.equal(nftContract1155.address);
+            it("Should check nft contract address is set properly", async function () {
+                expect(await tokenMarket.nftContractAddress()).to.equal(tokenAsset.address);
             });
             it("Should check storage contract address is set properly", async function () {
-                expect(await marketContract.storageContractAddress()).to.equal(storageContract.address);
+                expect(await tokenMarket.storageContractAddress()).to.equal(tokenStorage.address);
             });
         });
     });
@@ -172,8 +146,7 @@ describe("Market contract", function () {
 
         let royalty = 10;
         let tokenId = 1000;
-        let amount721 = 1;
-        let amount1155 = 10;
+        let amount = 10;
         let buyAmount = 5;
         let tokenPrice = utils.parseEther("0.05");
         let parsedPrice = utils.parseUnits((0.05 * buyAmount).toString());
@@ -182,68 +155,36 @@ describe("Market contract", function () {
         console.log(`TokenId: ${tokenId}`);
         console.log(`Royalty: ${royalty}`);
 
-        it("Should able to mint token in 721", async function () {
+        it("Should able to mint token in asset contract", async function () {
 
-            let transaction = await marketContract.connect(provider1)
-                .mintToken(tokenId, royalty, amount721);
+            let transaction = await tokenMarket.connect(provider1)
+                .mintToken(tokenId, royalty, amount);
             await transaction.wait();
 
-            expect(await storageContract.isTokenMinted(nftContract721.address, tokenId)).to.equal(true);
-            let mintedToken = await storageContract.getMintedToken(nftContract721.address, tokenId);
+            expect(await tokenStorage.isTokenMinted(tokenAsset.address, tokenId)).to.equal(true);
+            let mintedToken = await tokenStorage.getMintedToken(tokenAsset.address, tokenId);
 
-            console.log(`Minted Token 721: ${mintedToken}`);
+            console.log(`Minted Token: ${mintedToken}`);
         });
 
-        it("Should able to mint token in 1155", async function () {
-
-            let transaction = await marketContract.connect(provider1)
-                .mintToken(tokenId, royalty, amount1155);
-            await transaction.wait();
-
-            expect(await storageContract.isTokenMinted(nftContract1155.address, tokenId)).to.equal(true);
-            let mintedToken = await storageContract.getMintedToken(nftContract1155.address, tokenId);
-
-            console.log(`Minted Token 1155: ${mintedToken}`);
-        });
-
-        it("Should able to create sale 721", async function () {
-            let setApproval = await nftContract721.connect(provider1).setApprovalForAll(marketContract.address, true);
+        it("Should able to create sale", async function () {
+            let setApproval = await tokenAsset.connect(provider1).setApprovalForAll(tokenMarket.address, true);
             await setApproval.wait();
 
-            await expect(marketContract.connect(provider1)
-                .createSale(nftContract721.address, tokenId, tokenPrice, amount721)
-            ).to.emit(marketContract, 'TokenListed');
+            await expect(tokenMarket.connect(provider1)
+                .createSale(tokenAsset.address, tokenId, tokenPrice, amount)
+            ).to.emit(tokenMarket, 'TokenListed');
         });
 
-        it("Should able to create sale 1155", async function () {
-            let setApproval = await nftContract1155.connect(provider1).setApprovalForAll(marketContract.address, true);
-            await setApproval.wait();
+        it("Should able to buy token", async function () {
 
-            await expect(marketContract.connect(provider1)
-                .createSale(nftContract1155.address, tokenId, tokenPrice, amount1155)
-            ).to.emit(marketContract, 'TokenListed');
-        });
+            let itemId = await tokenStorage.getTokenListingCount(tokenAsset.address, tokenId)
 
-        it("Should able to buy token 721", async function () {
+            await expect(tokenMarket.connect(provider2)
+                .buyToken(tokenAsset.address, tokenId, itemId, buyAmount, {value: parsedPrice})
+            ).to.emit(tokenMarket, 'TokenBought');
 
-            let itemId = await storageContract.getTokenListingCount(nftContract721.address, tokenId)
-
-            await expect(marketContract.connect(provider2)
-                .buyToken(nftContract721.address, tokenId, itemId, amount721, {value: tokenPrice})
-            ).to.emit(marketContract, 'TokenBought');
-
-            expect(await nftContract721.ownerOf(tokenId)).to.equal(user2.address);
-        });
-
-        it("Should able to buy token 1155", async function () {
-
-            let itemId = await storageContract.getTokenListingCount(nftContract1155.address, tokenId)
-
-            await expect(marketContract.connect(provider2)
-                .buyToken(nftContract1155.address, tokenId, itemId, buyAmount, {value: parsedPrice})
-            ).to.emit(marketContract, 'TokenBought');
-
-            expect(await nftContract1155.balanceOf(user2.address, tokenId)).to.equal(buyAmount);
+            expect(await tokenAsset.balanceOf(user2.address, tokenId)).to.equal(buyAmount);
         });
     });
 });

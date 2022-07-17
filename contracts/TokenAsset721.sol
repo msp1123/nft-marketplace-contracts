@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
 /// @custom:security-contact praveenmsp23@gmail.com
-contract NftContract721 is ERC721, Pausable, AccessControl, ERC721Burnable {
+contract TokenAsset721 is ERC721, Pausable, AccessControl, ERC721Burnable {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     
