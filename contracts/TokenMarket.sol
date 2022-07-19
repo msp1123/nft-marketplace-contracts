@@ -75,7 +75,12 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(_amount > 0, "Amount should be more than zero");
         require(_royalty <= maxRoyalty, "Royalty limit exceeded");
 
-        TokenAsset(nftContractAddress).mint(_msgSender(), _tokenId, _amount, "0x");
+        TokenAsset(nftContractAddress).mint(
+            _msgSender(),
+            _tokenId,
+            _amount,
+            "0x"
+        );
 
         tokenStorage.mintToken(
             nftContractAddress,
@@ -86,12 +91,7 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             block.timestamp
         );
 
-        emit TokenMinted(
-            nftContractAddress,
-            _tokenId,
-            _amount,
-            _msgSender()
-        );
+        emit TokenMinted(nftContractAddress, _tokenId, _amount, _msgSender());
     }
 
     function createSale(
@@ -102,10 +102,6 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
     ) public {
         require(_amount > 0, "Amount should be more than zero");
         require(_price > 0, "Price must be greater than zero");
-        require(
-            tokenStorage.isTokenMinted(_nftAddress, _tokenId),
-            "Token not found in Market"
-        );
 
         uint256 _standard;
         uint256 _itemId;
@@ -124,7 +120,10 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             _standard = 721;
             _itemId = 1;
         } else if (_supportERC1155(_nftAddress)) {
-            uint256 balance = TokenAsset(_nftAddress).balanceOf(_msgSender(), _tokenId);
+            uint256 balance = TokenAsset(_nftAddress).balanceOf(
+                _msgSender(),
+                _tokenId
+            );
             require(balance >= _amount, "Must own enough token");
 
             bool isApproved = TokenAsset(_nftAddress).isApprovedForAll(
@@ -191,7 +190,11 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(amount >= _amount, "Cannot buy more than available");
 
         if (_supportERC721(_nftAddress)) {
-            TokenAsset721(_nftAddress).safeTransferFrom(owner, _msgSender(), _tokenId);
+            TokenAsset721(_nftAddress).safeTransferFrom(
+                owner,
+                _msgSender(),
+                _tokenId
+            );
         } else if (_supportERC1155(_nftAddress)) {
             TokenAsset(_nftAddress).safeTransferFrom(
                 owner,
@@ -236,16 +239,18 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
     ) private {
         address payable _platform = payable(tokenStorage.feeAddress());
 
-        uint256 forCreator = ((_value * _royalty) / 100);
+        uint256 forCreator = _royalty != 0 ? ((_value * _royalty) / 100) : 0;
         uint256 forPlatform = ((_value * tokenStorage.platformFee()) / 100);
         uint256 forOwner = _value - forCreator - forPlatform;
 
         // Due to Stack too deep exception, calculations are done on the flow
         _owner.transfer(forOwner);
-        _creator.transfer(forCreator);
         _platform.transfer(forPlatform);
+        if(forCreator != 0){
+            _creator.transfer(forCreator);
+        }
     }
-    
+
     function setMaxRoyalty(uint256 _newMaxRoyalty) public adminOnly {
         maxRoyalty = _newMaxRoyalty;
     }

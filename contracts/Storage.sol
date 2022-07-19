@@ -27,7 +27,7 @@ contract TokenStorage is AccessControl {
         uint256 standard;
         uint256 timestamp;
     }
-    
+
     struct BoughtToken {
         address nftAddress;
         uint256 tokenId;
@@ -94,7 +94,7 @@ contract TokenStorage is AccessControl {
 
         tokenListingCount[_nftAddress][_tokenId]++;
     }
-    
+
     function buyToken(
         address _nftAddress,
         uint256 _tokenId,
@@ -115,7 +115,7 @@ contract TokenStorage is AccessControl {
         boughtTokens[_nftAddress][_tokenId][_itemId].timestamp = _timestamp;
 
         tokenlistings[_nftAddress][_tokenId][_itemId].amount -= _amount;
-        if(tokenlistings[_nftAddress][_tokenId][_itemId].amount <= 0){
+        if (tokenlistings[_nftAddress][_tokenId][_itemId].amount <= 0) {
             tokenlistings[_nftAddress][_tokenId][_itemId].tradable = false;
         }
     }
@@ -164,6 +164,14 @@ contract TokenStorage is AccessControl {
         return mintedTokens[_nftAddress][_tokenId];
     }
 
+    function getBoughtToken(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _itemId
+    ) public view returns (BoughtToken memory) {
+        return boughtTokens[_nftAddress][_tokenId][_itemId];
+    }
+
     function getListedToken(
         address _nftAddress,
         uint256 _tokenId,
@@ -182,9 +190,9 @@ contract TokenStorage is AccessControl {
             uint256 standard
         )
     {
-        royalty = mintedTokens[_nftAddress][_tokenId].royalty;
+        royalty = mintedTokens[_nftAddress][_tokenId].royalty | 0;
         creator = mintedTokens[_nftAddress][_tokenId].creator;
-        standard = mintedTokens[_nftAddress][_tokenId].standard;
+        standard = tokenlistings[_nftAddress][_tokenId][_itemId].standard;
         owner = tokenlistings[_nftAddress][_tokenId][_itemId].owner;
         price = tokenlistings[_nftAddress][_tokenId][_itemId].price;
         amount = tokenlistings[_nftAddress][_tokenId][_itemId].amount;
