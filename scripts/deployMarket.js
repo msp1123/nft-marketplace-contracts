@@ -43,7 +43,7 @@ async function main () {
         utils.toUtf8Bytes("STORAGE_ADMIN_ROLE")
     );
     
-    let chainId = 4;
+    let chainId = '4';
     let maxRoyalty = 10;
     let platformFee = 5;
     let symbol = "NFTMARKET";

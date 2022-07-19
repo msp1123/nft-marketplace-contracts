@@ -43,7 +43,7 @@ describe("Market contract", function () {
         utils.toUtf8Bytes("STORAGE_ADMIN_ROLE")
     );
 
-    let chainId = 4;
+    let chainId = "4";
     let maxRoyalty = 10;
     let platformFee = 5;
     let symbol = "NFTMARKET";
@@ -112,6 +112,11 @@ describe("Market contract", function () {
                 expect(await tokenAsset.grantRole(MINTER_ROLE, tokenMarket.address));
                 expect(await tokenAsset.hasRole(MINTER_ROLE, tokenMarket.address)).to.equal(true);
             });
+            
+            it("Should able to get uri for token Id", async function () {
+                let uri = await tokenAsset.uri(1);
+                console.log(`TokenURI: ${uri}`);
+            });
         });
 
         describe("Storage Contract", function () {
@@ -147,9 +152,8 @@ describe("Market contract", function () {
         let royalty = 10;
         let tokenId = 1000;
         let amount = 10;
-        let buyAmount = 5;
         let tokenPrice = utils.parseEther("0.05");
-        let parsedPrice = utils.parseUnits((0.05 * buyAmount).toString());
+        let parsedPrice = utils.parseUnits((0.05).toString());
         let currentTime = parseInt(Date.now() / 1000);
 
         console.log(`TokenId: ${tokenId}`);
@@ -181,10 +185,10 @@ describe("Market contract", function () {
             let itemId = await tokenStorage.getTokenListingCount(tokenAsset.address, tokenId)
 
             await expect(tokenMarket.connect(provider2)
-                .buyToken(tokenAsset.address, tokenId, itemId, buyAmount, {value: parsedPrice})
+                .buyToken(tokenAsset.address, tokenId, itemId, {value: parsedPrice})
             ).to.emit(tokenMarket, 'TokenBought');
 
-            expect(await tokenAsset.balanceOf(user2.address, tokenId)).to.equal(buyAmount);
+            expect(await tokenAsset.balanceOf(user2.address, tokenId)).to.equal(amount);
         });
     });
 });

@@ -32,7 +32,8 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         uint256 tokenId,
         uint256 itemId,
         uint256 amount,
-        uint256 price
+        uint256 price,
+        address owner
     );
     event TokenBought(
         uint256 standard,
@@ -74,6 +75,14 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
     ) public {
         require(_amount > 0, "Amount should be more than zero");
         require(_royalty <= maxRoyalty, "Royalty limit exceeded");
+
+        require(
+            !TokenStorage(storageContractAddress).isTokenMinted(
+                nftContractAddress,
+                _tokenId
+            ),
+            "Token is already minted"
+        );
 
         TokenAsset(nftContractAddress).mint(
             _msgSender(),
@@ -118,7 +127,6 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             );
             require(isApproved, "Set approval before listing");
             _standard = 721;
-            _itemId = 1;
         } else if (_supportERC1155(_nftAddress)) {
             uint256 balance = TokenAsset(_nftAddress).balanceOf(
                 _msgSender(),
@@ -132,12 +140,11 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             );
             require(isApproved, "Set approval before listing");
             _standard = 1155;
-            _itemId =
-                tokenStorage.getTokenListingCount(_nftAddress, _tokenId) +
-                1;
         } else {
             revert("Invalid nft address");
         }
+
+        _itemId = tokenStorage.getTokenListingCount(_nftAddress, _tokenId) + 1;
 
         tokenStorage.listToken(
             _nftAddress,
@@ -156,17 +163,16 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             _tokenId,
             _itemId,
             _amount,
-            _price
+            _price,
+            _msgSender()
         );
     }
 
     function buyToken(
         address _nftAddress,
         uint256 _tokenId,
-        uint256 _itemId,
-        uint256 _amount
+        uint256 _itemId
     ) public payable {
-        require(_amount > 0, "Amount should be more than zero");
         require(
             _itemId <= tokenStorage.getTokenListingCount(_nftAddress, _tokenId),
             "Item not found in market"
@@ -186,21 +192,31 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         require(owner != address(0), "Token not found in listing");
         require(tradable, "Token is not tradable");
         require(owner != _msgSender(), "Cannot buy own token");
-        require(msg.value == price * _amount, "Not enough eth sent");
-        require(amount >= _amount, "Cannot buy more than available");
+        require(msg.value == price, "Not enough eth sent");
 
         if (_supportERC721(_nftAddress)) {
+            address _owner = TokenAsset721(_nftAddress).ownerOf(_tokenId);
+            if (_owner != owner) {
+                revert("Token not owned by the seller");
+            }
             TokenAsset721(_nftAddress).safeTransferFrom(
                 owner,
                 _msgSender(),
                 _tokenId
             );
         } else if (_supportERC1155(_nftAddress)) {
+            uint256 balance = TokenAsset(_nftAddress).balanceOf(
+                owner,
+                _tokenId
+            );
+            if (balance < amount) {
+                revert("Not enough tokens available");
+            }
             TokenAsset(_nftAddress).safeTransferFrom(
                 owner,
                 _msgSender(),
                 _tokenId,
-                _amount,
+                amount,
                 ""
             );
         } else {
@@ -213,8 +229,8 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
             _nftAddress,
             _tokenId,
             _itemId,
-            _amount,
-            price * _amount,
+            amount,
+            price,
             owner,
             _msgSender(),
             block.timestamp
@@ -246,7 +262,7 @@ contract TokenMarket is Pausable, Ownable, AccessControlEnumerable {
         // Due to Stack too deep exception, calculations are done on the flow
         _owner.transfer(forOwner);
         _platform.transfer(forPlatform);
-        if(forCreator != 0){
+        if (forCreator != 0) {
             _creator.transfer(forCreator);
         }
     }
