@@ -18,10 +18,10 @@ contract TokenAsset is ERC1155PresetMinterPauser {
     )
         ERC1155PresetMinterPauser(
             concat(
-                "https://marketplace-nft.s3.us-west-1.amazonaws.com/nft/token",
+                "http://54.153.124.24:3200/v1/token/metadata",
                 _chainId,
                 toAsciiString(address(this)),
-                "{id}.json"
+                "{id}"
             )
         )
     {
@@ -32,7 +32,7 @@ contract TokenAsset is ERC1155PresetMinterPauser {
         name = _name;
         symbol = _symbol;
 
-        _contractUri = "https://marketplace-nft.s3.us-west-1.amazonaws.com/contract/contract.json";
+        _contractUri = "https://nft-market.s3.us-west-1.amazonaws.com/contract/contract.json";
     }
 
     function pause() public override onlyRole(PAUSER_ROLE) {
